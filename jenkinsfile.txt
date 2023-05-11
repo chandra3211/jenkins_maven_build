@@ -1,0 +1,43 @@
+pipeline {
+    agent {
+      node {
+        label 'docker'
+      }    
+    }
+    environment {
+        IMAGE = naginx:latest
+    }
+    stages {
+        stage ('git checkout') {
+           steps {
+               git url: 'https://github.com/mavenbuild/maven.git', branch: 'main'
+           }
+        }
+        stage ('build') {
+           steps{     
+            sh 'mvn clean package'
+           }
+        }   
+        stage ('sonar') {
+            steps {
+                sh 'mvn sonar:sonar -Dsonar.login=$SONAR_PSW'
+            }
+        }    
+        stage ('Build and Push Image'){
+            steps {
+                sh """
+                   docker build -t ${IMAGE} .
+                   docker tag ${IMAGE} ${IMAGE}:${VERSION}
+                   docker push ${IMAGE:${VERSION}
+                """   
+            }
+        }      
+    }   
+    post {
+        failute {
+            mail to: 'chandracool.1989@gmail.com',
+               subject: "Failed pipeline"
+               body: "something is wrong in the build"
+        }
+    } 
+}
